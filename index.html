@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>デスクトップ自動ファイル化（DownloadURL）連携テスト</title>
+    <title>手動決定式・デスクトップ自動ファイル化テスト</title>
 </head>
 <body style="background: #fdf6ec; padding: 30px; font-family: sans-serif; text-align: center;">
 
     <h2>🐾 本サイト（親画面：バックグラウンド処理）</h2>
-    <p>青いボタンを押してドロップくん（小窓）を起動してください。</p>
+    <p>ボタンを押してドロップくん（小窓）を起動してください。</p>
 
     <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #e6a23c; color: white; border: none; border-radius: 8px; cursor: pointer;">
         ドロップくん（小窓）を起動する🐾
@@ -18,7 +18,7 @@
 
     <!-- 小窓の中に引っ越しさせる中身（HTML） -->
     <div id="pipContent" style="padding: 15px; font-family: sans-serif; text-align: center; background: #fff; height: 100%;">
-        <p style="font-size: 14px; color: #555; font-weight: bold;">【デスクトップに落としてね】</p>
+        <p style="font-size: 14px; color: #555; font-weight: bold;">【手動で決定してデスクトップへ】</p>
         
         <!-- 正方形のプレビュー画像欄 -->
         <div style="width: 200px; height: 200px; border: 3px dashed #e6a23c; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
@@ -26,12 +26,19 @@
         </div>
 
         <!-- 動作シミュレーション用のスライダー -->
-        <div style="margin-top: 20px;">
-            <label style="font-size: 12px; color: #666;">枠を動かす（リアルタイム処理）:</label><br>
+        <div style="margin-top: 15px;">
+            <label style="font-size: 12px; color: #666;">枠を動かす（この時点ではまだ未確定）:</label><br>
             <input type="range" id="moveSlider" min="0" max="255" value="180" style="width: 80%;">
         </div>
 
-        <p id="pipStatus" style="font-size: 13px; color: #e6a23c; margin-top: 15px; font-weight: bold;">まずは枠（スライダー）を動かしてね！</p>
+        <!-- 🌟手動でポチッとする処理ボタン -->
+        <div style="margin-top: 15px;">
+            <button id="commitBtn" style="padding: 8px 20px; font-size: 14px; font-weight: bold; background: #67c23a; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                この枠で画像を確定する（ポチッ）🐾
+            </button>
+        </div>
+
+        <p id="pipStatus" style="font-size: 13px; color: #e6a23c; margin-top: 15px; font-weight: bold;">枠を決めたら、緑のボタンを押してね！</p>
     </div>
 
     <script>
@@ -40,9 +47,8 @@
         const hiddenCanvas = document.getElementById('hiddenCanvas');
         const ctx = hiddenCanvas.getContext('2d');
 
-        // スライダーの値に合わせて親画面でCanvas画像（DataURL）を作る関数
+        // ボタンをポチッとしたときだけ親画面でCanvas画像（DataURL）を作る関数
         function processImageInParent(sliderValue) {
-            // オレンジ〜黄色ベースの正方形
             ctx.fillStyle = `rgb(230, ${sliderValue}, 60)`; 
             ctx.fillRect(0, 0, 200, 200);
             
@@ -52,10 +58,9 @@
             ctx.fillStyle = "#e6a23c";
             ctx.font = "bold 16px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("DESKTOP", 100, 95);
-            ctx.fillText("DROP! 🐾", 100, 125);
+            ctx.fillText("MANUAL", 100, 95);
+            ctx.fillText("READY! 🐾", 100, 125);
 
-            // 🌟DownloadURL機能には、固定された文字列（Base64）のURLが必要です
             return hiddenCanvas.toDataURL('image/png');
         }
 
@@ -65,40 +70,50 @@
                 return;
             }
 
-            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 350, height: 450 });
+            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 350, height: 480 });
             pipWindow.document.body.append(pipContent);
 
             const previewImg = pipWindow.document.getElementById('previewImg');
             const moveSlider = pipWindow.document.getElementById('moveSlider');
+            const commitBtn = pipWindow.document.getElementById('commitBtn');
             const pipStatus = pipWindow.document.getElementById('pipStatus');
 
             let currentDataUrl = "";
+            let isConfirmed = false;
 
-            function updatePreview() {
+            // スライダーを動かしている間は、簡易的な仮の見た目だけ変更（裏の本格処理はしない）
+            moveSlider.addEventListener('input', () => {
+                previewImg.style.backgroundColor = `rgb(230, ${moveSlider.value}, 60)`;
+                pipStatus.innerText = "⚠️ まだ未確定です。緑のボタンを押してください。";
+                pipStatus.style.color = "#e6a23c";
+                isConfirmed = false;
+            });
+
+            // 🌟緑のボタンを「手動でポチッ」としたときの処理
+            commitBtn.addEventListener('click', () => {
                 currentDataUrl = processImageInParent(moveSlider.value);
-                previewImg.src = currentDataUrl;
-                pipStatus.innerText = "👉 画像を掴んで、デスクトップへ落としてね！";
-            }
+                previewImg.src = currentDataUrl; // 確定した画像を表示
+                pipStatus.innerText = "⭕ 画像が確定しました！デスクトップへドラッグしてね！";
+                pipStatus.style.color = "green";
+                isConfirmed = true;
+            });
 
-            updatePreview();
-            moveSlider.addEventListener('input', updatePreview);
-
-            // 🚀 【最重要：DownloadURLの設定】
+            // 🚀 【DownloadURLの設定】
             previewImg.addEventListener('dragstart', (e) => {
-                if (!currentDataUrl) return;
+                if (!isConfirmed || !currentDataUrl) {
+                    e.preventDefault(); // 確定ボタンを押していない時はドラッグを禁止する
+                    alert("先に『この枠で画像を確定する』ボタンを押してにゃ！🐾");
+                    return;
+                }
 
-                // 保存する時のファイル名を決める（例: desktop_item.png）
-                const fileName = "desktop_item.png";
-
-                // Windows（OS）に対して「ドロップした場所にこの画像ファイルを作れ！」と命令を埋め込むスタンプ
-                // 形式： e.dataTransfer.setData("DownloadURL", "MIMEタイプ:ファイル名:画像データ")
+                const fileName = "manual_item.png";
+                // デスクトップにファイルを作成するスタンプをセット
                 e.dataTransfer.setData("DownloadURL", `image/png:${fileName}:${currentDataUrl}`);
-                
                 pipStatus.innerText = "⚡ デスクトップにファイルを作成中...";
             });
 
             previewImg.addEventListener('dragend', () => {
-                pipStatus.innerText = "生成完了！デスクトップの画像情報をゲームへスライドしてね🐾";
+                pipStatus.innerText = "生成完了！デスクトップからゲームへスライドしてね🐾";
             });
         });
     </script>
