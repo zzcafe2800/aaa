@@ -2,81 +2,116 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>PiP画像ダウンロード</title>
+    <title>PiP内ダウンロード＆履歴強調デモ</title>
     <style>
         body { font-family: sans-serif; padding: 20px; text-align: center; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        /* PiP内のスタイル定義 */
-        .pip-body { font-family: sans-serif; padding: 10px; background: #f0f2f5; margin: 0; }
-        .info-text { font-size: 14px; color: #555; margin-bottom: 8px; }
-        /* 吹き出しのスタイル */
+        
+        /* --- PiPウィンドウ内の専用スタイル --- */
+        .pip-body { font-family: sans-serif; padding: 12px; background: #f8f9fa; margin: 0; color: #333; }
+        .title { font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #555; }
+        .preview-img { width: 100%; max-height: 140px; object-fit: cover; border-radius: 6px; border: 1px solid #ccc; }
+        .action-btn { background: #007bff; color: white; border: none; width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        
+        /* 履歴の上に表示される「吹き出し」 */
         .balloon {
-            position: relative; background: #ffeaa7; padding: 8px;
-            border-radius: 8px; font-size: 12px; margin-bottom: 12px; border: 1px solid #fdcb6e;
+            position: relative; background: #fff3cd; border: 1px solid #ffeeba;
+            padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; color: #856404; margin-bottom: 12px;
         }
         .balloon::after {
-            content: ''; position: absolute; bottom: -8px; left: 20px;
-            border-width: 8px 8px 0; border-style: solid; border-color: #ffeaa7 transparent;
+            content: ''; position: absolute; bottom: -8px; left: 30px;
+            border-width: 8px 8px 0; border-style: solid; border-color: #fff3cd transparent;
         }
-        /* 一番上のダウンロード画像を最強調 */
-        .highlight-box {
-            background: #fff; border: 3px solid #ff7675; padding: 10px;
-            border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        
+        /* 最新ダウンロード（一番上）の最強調枠 */
+        .latest-download {
+            background: #fff; border: 3px solid #dc3545; padding: 10px;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(220,53,69,0.2); margin-bottom: 15px;
         }
-        .highlight-box img { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 5px auto; }
-        .dl-btn { background: #00cec9; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .latest-download img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; display: block; margin-top: 5px; }
+        
+        /* 過去のダウンロード履歴リスト */
+        .history-list { border-top: 1px dashed #ccc; padding-top: 10px; }
+        .history-item { display: flex; align-items: center; gap: 10px; background: #fff; padding: 6px; border-radius: 4px; margin-bottom: 6px; border: 1px solid #eee; font-size: 11px; }
+        .history-item img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <h1>Document Picture-in-Picture デモ</h1>
-    <button id="startPip">PiPウィンドウを開く</button>
+    <h1>PiP内ダウンロード＆履歴デモ</h1>
+    <button id="openPip">PiPウィンドウを開く</button>
 
 <script>
-const startPipBtn = document.getElementById('startPip');
+// 文字が描かれた画像のダミーデータ（1番目が最初に表示される画像、2番目以降が過去の履歴用）
+const images = [
+    { url: 'https://unsplash.com', label: 'ダウンロード対象の画像（デザインA）' },
+    { url: 'https://unsplash.com', label: '1分前に保存した画像' },
+    { url: 'https://unsplash.com', label: '5分前に保存した画像' }
+];
 
-// ダミーのダウンロード画像URL（サンプルの猫画像）とファイル名
-const sampleImageUrl = 'https://unsplash.com';
-const sampleText = 'サンプルテキスト：ファイルが正常に処理されました。';
+document.getElementById('openPip').addEventListener('click', async () => {
+    // 1. PiPウィンドウを起動
+    const pipWin = await window.documentPictureInPicture.requestWindow({ width: 340, height: 450 });
 
-startPipBtn.addEventListener('click', async () => {
-    // 1. Document PiP ウィンドウを開く
-    const pipWindow = await window.documentPictureInPicture.requestWindow({
-        width: 320,
-        height: 400,
-    });
-
-    // 2. メイン画面のスタイルをPiP内にコピー
+    // 2. メイン画面のスタイルをPiPに適用
     const style = document.createElement('style');
     style.textContent = document.querySelector('style').textContent;
-    pipWindow.document.head.appendChild(style);
+    pipWin.document.head.appendChild(style);
+    pipWin.document.body.className = 'pip-body';
 
-    // 3. PiP内のコンテンツ構造を作成（一番上の画像を赤枠で最強調、吹き出し付き）
-    pipWindow.document.body.className = 'pip-body';
-    pipWindow.document.body.innerHTML = `
-        <!-- 適当な文字の表示エリア -->
-        <div class="info-text">${sampleText}</div>
-        
-        <!-- ドラッグなどを案内する吹き出し -->
-        <div class="balloon">💡 画像をドラッグしてデスクトップに保存するか、下のボタンでダウンロードできます！</div>
-        
-        <!-- ダウンロード一覧・最上部の強調画像エリア -->
-        <div class="highlight-box">
-            <strong style="color: #d63031; font-size: 12px;">🔥 新着ダウンロード画像</strong>
-            <img src="${sampleImageUrl}" alt="Downloaded Image">
-            <button id="pipDlBtn" class="dl-btn">画像を保存</button>
-        </div>
-    `;
+    // 3. 最初に見せる「文字の描いた画像とDLボタン」を表示する関数
+    function renderInitialView() {
+        pipWin.document.body.innerHTML = `
+            <div class="title">📄 文字が描かれた画像</div>
+            <img src="${images[0].url}" class="preview-img" alt="Target">
+            <button id="dlBtn" class="action-btn">📥 この画像をダウンロード</button>
+        `;
 
-    // 4. PiP内の「画像を保存」ボタンのダウンロード処理
-    pipWindow.document.getElementById('pipDlBtn').addEventListener('click', () => {
-        const a = document.createElement('a');
-        a.href = sampleImageUrl;
-        a.download = 'downloaded-image.jpg';
-        pipWindow.document.body.appendChild(a);
-        a.click();
-        a.remove();
-    });
+        // DLボタンが押されたときの処理
+        pipWin.document.getElementById('dlBtn').addEventListener('click', () => {
+            // 実際にブラウザで画像ダウンロードを実行
+            const a = document.createElement('a');
+            a.href = images[0].url;
+            a.download = 'text-image.jpg';
+            pipWin.document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            // ダウンロード完了後、履歴画面に書き換える
+            renderHistoryView();
+        });
+    }
+
+    // 4. ダウンロード後に「履歴の上に吹き出しをつけて最強調」する関数
+    function renderHistoryView() {
+        pipWin.document.body.innerHTML = `
+            <!-- 履歴の上に表示される案内吹き出し -->
+            <div class="balloon">✨ ダウンロードが完了しました！ここからドラッグも可能です！</div>
+            
+            <!-- 一番上の最新ダウンロード（赤枠で強調） -->
+            <div class="latest-download">
+                <span style="color: #dc3545; font-size: 11px; font-weight: bold;">🔴 最新のダウンロード履歴（最上部）</span>
+                <img src="${images[0].url}" alt="Latest">
+                <div style="font-size: 12px; margin-top: 5px; color: #555;">${images[0].label}</div>
+            </div>
+            
+            <!-- それより古い過去の履歴一覧 -->
+            <div class="title" style="font-size: 12px; color: #777;">📁 過去の履歴</div>
+            <div class="history-list">
+                <div class="history-item">
+                    <img src="${images[1].url}">
+                    <span>${images[1].label}</span>
+                </div>
+                <div class="history-item">
+                    <img src="${images[2].url}">
+                    <span>${images[2].label}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // 初回起動時は最初の画面を表示
+    renderInitialView();
 });
 </script>
 </body>
