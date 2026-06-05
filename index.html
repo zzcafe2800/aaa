@@ -2,63 +2,49 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ブラウザダウンロード案内</title>
+    <title>サイト透明化＆PiPコントロールデモ</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        /* メインサイト全体のスタイル */
+        body { 
+            font-family: sans-serif; padding: 20px; text-align: center; 
+            background-color: #ffffff; color: #333333; transition: opacity 0.3s;
+        }
+        /* 【重要】このクラスがついた時だけサイトを完全に透明（非表示）にする */
+        body.transparent-mode {
+            opacity: 0 !important;
+            pointer-events: none; /* 透明化中はクリックも無効化 */
+        }
+        
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        
-        /* --- PiPウィンドウ内の専用スタイル --- */
-        .pip-body { font-family: sans-serif; padding: 10px; background: #fff; margin: 0; text-align: center; overflow: hidden; }
-        
-        /* 
-          【ここがポイント】
-          ブラウザのダウンロード履歴は「右上」に出るので、
-          PiPの最上部に「上を指す矢印付きの吹き出し」を配置して誘導する
-        */
-        .arrow-up-balloon {
-            position: relative;
-            background: #ffeaa7;
-            border: 2px solid #fdcb6e;
-            padding: 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #d63031;
-            margin-top: 10px; /* 上部に少し隙間をあける */
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        /* 上向きの三角形（矢印） */
-        .arrow-up-balloon::before {
-            content: '';
-            position: absolute;
-            top: -10px; /* 吹き出しの上に飛び出させる */
-            left: 85%;  /* 右上のダウンロードボタンに近い位置に調整 */
-            border-width: 0 10px 10px 10px;
-            border-style: solid;
-            border-color: transparent transparent #fdcb6e transparent;
-        }
-        .arrow-up-balloon::after {
-            content: '';
-            position: absolute;
-            top: -7px;
-            left: 85%;
-            border-width: 0 10px 10px 10px;
-            border-style: solid;
-            border-color: transparent transparent #ffeaa7 transparent;
-        }
 
-        .preview-box { margin-top: 15px; border: 1px dashed #ccc; padding: 5px; border-radius: 4px; }
-        .preview-box img { width: 100%; max-height: 80px; object-fit: contain; }
-        .action-btn { background: #007bff; color: white; border: none; width: 100%; padding: 8px; margin-top: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        /* --- PiPウィンドウ内の専用スタイル --- */
+        .pip-body { font-family: sans-serif; padding: 12px; background: #fff; margin: 0; text-align: center; }
+        .arrow-up-balloon {
+            position: relative; background: #ffeaa7; border: 2px solid #fdcb6e;
+            padding: 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: #d63031; margin-top: 5px;
+        }
+        .arrow-up-balloon::before {
+            content: ''; position: absolute; top: -10px; left: 85%;
+            border-width: 0 10px 10px 10px; border-style: solid; border-color: transparent transparent #fdcb6e transparent;
+        }
+        .preview-box { margin-top: 10px; border: 1px dashed #ccc; padding: 5px; border-radius: 4px; }
+        .preview-box img { width: 100%; max-height: 70px; object-fit: contain; }
+        
+        /* PiP内のコントロールボタン */
+        .action-btn { background: #007bff; color: white; border: none; width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .reset-btn { background: #ea2027; color: white; border: none; width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
     </style>
 </head>
 <body>
 
-    <h1>ブラウザのダウンロード履歴を案内するデモ</h1>
-    <button id="openPip">PiPウィンドウを開く</button>
+    <div id="mainContent">
+        <h1>サイト透明化＆PiPデモ</h1>
+        <p>下のボタンを押すと、この画面の文字や背景が一時的に消えて透明になります。</p>
+        <button id="openPip">PiPウィンドウを開く</button>
+    </div>
 
 <script>
-// 文字入りPNG画像
+// 文字入りPNG画像をCanvasで生成
 function createTextImage() {
     const canvas = document.createElement('canvas');
     canvas.width = 300; canvas.height = 150;
@@ -72,55 +58,64 @@ function createTextImage() {
 const generatedPng = createTextImage();
 
 document.getElementById('openPip').addEventListener('click', async () => {
-    // 1. PiPウィンドウを少し横長・コンパクトに開く
-    const pipWin = await window.documentPictureInPicture.requestWindow({ 
-        width: 280, 
-        height: 260 
-    });
+    // 1. PiPウィンドウをコンパクトに起動
+    const pipWin = await window.documentPictureInPicture.requestWindow({ width: 280, height: 260 });
 
-    // 2. スタイル適用
+    // 2. スタイルをPiPに適用
     const style = document.createElement('style');
     style.textContent = document.querySelector('style').textContent;
     pipWin.document.head.appendChild(style);
     pipWin.document.body.className = 'pip-body';
 
-    // 3. 初期表示
+    // 3. PiPを開いた瞬間に、メインサイトを「透明モード」にする
+    document.body.classList.add('transparent-mode');
+
+    // 4. PiP内の初期画面
     function renderInitialView() {
         pipWin.document.body.innerHTML = `
-            <div class="preview-box">
-                <img src="${generatedPng}">
-            </div>
+            <div class="preview-box"><img src="${generatedPng}"></div>
             <button id="dlBtn" class="action-btn">📥 ダウンロードして履歴を表示</button>
+            <!-- メインサイトをPiP側からいつでも復元できるボタン -->
+            <button id="restoreBtn" class="reset-btn">👁 サイトの透明化を解除</button>
         `;
 
+        // ダウンロード処理
         pipWin.document.getElementById('dlBtn').addEventListener('click', () => {
-            // ダウンロード実行
             const a = document.createElement('a');
             a.href = generatedPng;
             a.download = 'text-image.png';
-            document.body.appendChild(a); 
+            document.body.appendChild(a); // 元サイト（親）の裏側で実行
             a.click();
             a.remove();
 
-            // 保存完了後、ブラウザの右上履歴を指し示す画面に変形
             renderGuideView();
+        });
+
+        // サイトを元に戻す処理
+        pipWin.document.getElementById('restoreBtn').addEventListener('click', () => {
+            document.body.classList.remove('transparent-mode');
         });
     }
 
-    // 4. ダウンロードした瞬間、PiPの最上部に「上向きの吹き出し矢印」を出す
+    // 5. ダウンロード後の案内画面（ここからも元に戻せます）
     function renderGuideView() {
         pipWin.document.body.innerHTML = `
-            <!-- ブラウザの右上履歴を狙い撃ちする上向きの吹き出し -->
             <div class="arrow-up-balloon">
-                👆 画面右上の「ダウンロード履歴」に保存されました！<br>
-                そこからデスクトップへドラッグ＆ドロップできます！
+                👆 画面右上の履歴に保存されました！<br>
+                そこからドラッグ可能です！
             </div>
-
-            <div class="preview-box" style="opacity: 0.5; margin-top: 10px;">
-                <img src="${generatedPng}">
-            </div>
+            <button id="restoreBtn2" class="reset-btn">👁 サイトの透明化を解除</button>
         `;
+
+        pipWin.document.getElementById('restoreBtn2').addEventListener('click', () => {
+            document.body.classList.remove('transparent-mode');
+        });
     }
+
+    // PiPが「×」ボタンなどで手動で閉じられた時も、自動でサイトを元に戻す安全処理
+    pipWin.addEventListener('pagehide', () => {
+        document.body.classList.remove('transparent-mode');
+    });
 
     renderInitialView();
 });
