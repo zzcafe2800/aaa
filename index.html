@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>PiPバグ修正版</title>
+    <title>文字入りPNG生成＆PiPダウンロード</title>
     <style>
         body { font-family: sans-serif; padding: 20px; text-align: center; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
         
         /* PiP専用スタイル */
         .pip-body { font-family: sans-serif; padding: 12px; background: #f8f9fa; margin: 0; }
-        .preview-img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 6px; }
+        .preview-img { width: 100%; max-height: 120px; object-fit: contain; border-radius: 6px; background: #eee; }
         .action-btn { background: #007bff; color: white; border: none; width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
         /* 履歴の上の吹き出し */
@@ -27,63 +27,77 @@
             background: #fff; border: 3px solid #dc3545; padding: 8px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(220,53,69,0.2); margin-bottom: 12px;
         }
-        .latest-download img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; }
+        .latest-download img { width: 100%; max-height: 100px; object-fit: contain; }
+        
+        /* 過去の履歴リスト */
         .history-item { display: flex; align-items: center; gap: 10px; background: #fff; padding: 4px; border-radius: 4px; margin-bottom: 4px; border: 1px solid #eee; font-size: 11px; }
-        .history-item img { width: 30px; height: 30px; object-fit: cover; }
+        .history-item img { width: 40px; height: 30px; object-fit: contain; background: #eee; }
     </style>
 </head>
 <body>
 
-    <h1>PiPバグ修正版デモ</h1>
+    <h1>文字入りPNG生成＆PiPダウンロード</h1>
     <button id="openPip">PiPウィンドウを開く</button>
 
 <script>
-// 今回ダウンロードさせる「文字の入ったPNG画像」（フリー素材のサンプルPNG）
-const targetPngUrl = 'https://unsplash.com'; 
+// 1. その場で「文字が入ったPNG画像」をプログラムで作成する関数
+function createTextImage(text) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 150;
+    const ctx = canvas.getContext('2d');
+    
+    // 背景を水色にする
+    ctx.fillStyle = '#e0f7fa';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 文字を描く
+    ctx.fillStyle = '#006064';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    
+    // PNGのデータURL（base64）として出力
+    return canvas.toDataURL('image/png');
+}
+
+// 今回使用する文字入り画像データを生成
+const generatedPng = createTextImage('★サンプルのPNG画像★');
 
 document.getElementById('openPip').addEventListener('click', async () => {
-    // 1. PiPウィンドウを起動
+    // 2. PiPウィンドウを起動
     const pipWin = await window.documentPictureInPicture.requestWindow({ width: 340, height: 420 });
 
-    // 2. スタイル適用
+    // 3. スタイル適用
     const style = document.createElement('style');
     style.textContent = document.querySelector('style').textContent;
     pipWin.document.head.appendChild(style);
     pipWin.document.body.className = 'pip-body';
 
-    // 3. 初回の「ダウンロード画面」
+    // 4. 初回の「ダウンロード画面」
     function renderInitialView() {
         pipWin.document.body.innerHTML = `
-            <div style="font-size:12px; margin-bottom:5px;">📄 文字が描かれたPNG画像</div>
-            <img src="${targetPngUrl}" class="preview-img">
+            <div style="font-size:12px; margin-bottom:5px;">📄 生成された文字入りPNG画像</div>
+            <img src="${generatedPng}" class="preview-img">
             <button id="dlBtn" class="action-btn">📥 PNGをダウンロード</button>
         `;
 
-        pipWin.document.getElementById('dlBtn').addEventListener('click', async () => {
-            try {
-                // 【超重要】PiPを閉じさせずにPNGを保存するための安全なダウンロード処理
-                const response = await fetch(targetPngUrl);
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                
-                // メイン画面（親ウィンドウ）の要素を使って安全に保存
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = 'image.png';
-                document.body.appendChild(a); // 親側のbodyに追加
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(blobUrl);
+        pipWin.document.getElementById('dlBtn').addEventListener('click', () => {
+            // 【重要】親ウィンドウ側の要素を使って安全に保存することでPiPが閉じない
+            const a = document.createElement('a');
+            a.href = generatedPng;
+            a.download = 'text-image.png';
+            document.body.appendChild(a); 
+            a.click();
+            a.remove();
 
-                // 保存が成功したら、PiP内の表示を履歴画面に切り替え
-                renderHistoryView();
-            } catch (error) {
-                alert('ダウンロードに失敗しました。画像の参照権限（CORS）を確認してください。');
-            }
+            // 保存が成功したら、PiP内の表示を履歴画面に切り替え
+            renderHistoryView();
         });
     }
 
-    // 4. ダウンロード後の「履歴＆最上部最強調画面」
+    // 5. ダウンロード後の「履歴＆最上部最強調画面」
     function renderHistoryView() {
         pipWin.document.body.innerHTML = `
             <!-- 履歴の真上に表示される吹き出し -->
@@ -91,14 +105,14 @@ document.getElementById('openPip').addEventListener('click', async () => {
             
             <!-- 最新履歴（最上部を赤枠で強調） -->
             <div class="latest-download">
-                <span style="color: #dc3545; font-size: 11px; font-weight: bold;">🔴 最新のダウンロード</span>
-                <img src="${targetPngUrl}">
+                <span style="color: #dc3545; font-size: 11px; font-weight: bold;">🔴 最新のダウンロード履歴</span>
+                <img src="${generatedPng}">
             </div>
             
             <!-- 過去の履歴一覧 -->
             <div style="font-size: 11px; color: #777; margin-bottom: 5px;">📁 過去の履歴</div>
-            <div class="history-item"><img src="${targetPngUrl}"><span>1分前に保存した画像.png</span></div>
-            <div class="history-item"><img src="${targetPngUrl}"><span>5分前に保存した画像.png</span></div>
+            <div class="history-item"><img src="${generatedPng}"><span>1分前に保存した画像.png</span></div>
+            <div class="history-item"><img src="${generatedPng}"><span>5分前に保存した画像.png</span></div>
         `;
     }
 
