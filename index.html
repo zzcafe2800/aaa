@@ -2,133 +2,82 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ダウンロード＆超強調テスト</title>
+    <title>PiP画像ダウンロード</title>
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background: #e0f2fe; text-align: center; padding-top: 50px; }
-        /* 🌟最新の画像がピョコンと飛び出す可愛いアニメーション */
-        @keyframes popIn {
-            0% { transform: scale(0); opacity: 0; }
-            70% { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
+        body { font-family: sans-serif; padding: 20px; text-align: center; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        /* PiP内のスタイル定義 */
+        .pip-body { font-family: sans-serif; padding: 10px; background: #f0f2f5; margin: 0; }
+        .info-text { font-size: 14px; color: #555; margin-bottom: 8px; }
+        /* 吹き出しのスタイル */
+        .balloon {
+            position: relative; background: #ffeaa7; padding: 8px;
+            border-radius: 8px; font-size: 12px; margin-bottom: 12px; border: 1px solid #fdcb6e;
         }
-        .new-saved-thumb { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .balloon::after {
+            content: ''; position: absolute; bottom: -8px; left: 20px;
+            border-width: 8px 8px 0; border-style: solid; border-color: #ffeaa7 transparent;
+        }
+        /* 一番上のダウンロード画像を最強調 */
+        .highlight-box {
+            background: #fff; border: 3px solid #ff7675; padding: 10px;
+            border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .highlight-box img { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 5px auto; }
+        .dl-btn { background: #00cec9; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>🐾 Cat Palette Mini</h2>
-    <button id="openPipBtn" style="padding: 12px 24px; font-size: 16px; background: #0284c7; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold;">小窓（PiP）を起動🐾</button>
+    <h1>Document Picture-in-Picture デモ</h1>
+    <button id="startPip">PiPウィンドウを開く</button>
 
-    <!-- 非表示の画像生成用キャンバス -->
-    <canvas id="hiddenCanvas" width="200" height="200" style="display: none;"></canvas>
+<script>
+const startPipBtn = document.getElementById('startPip');
 
-    <!-- 💡ここから下すべて小窓（PiP）の中身 -->
-    <div id="pipContent" style="padding: 12px; height: 100%; box-sizing: border-box; background: #e0f2fe; display: flex; flex-direction: column; justify-content: space-between; font-family: sans-serif;">
+// ダミーのダウンロード画像URL（サンプルの猫画像）とファイル名
+const sampleImageUrl = 'https://unsplash.com';
+const sampleText = 'サンプルテキスト：ファイルが正常に処理されました。';
+
+startPipBtn.addEventListener('click', async () => {
+    // 1. Document PiP ウィンドウを開く
+    const pipWindow = await window.documentPictureInPicture.requestWindow({
+        width: 320,
+        height: 400,
+    });
+
+    // 2. メイン画面のスタイルをPiP内にコピー
+    const style = document.createElement('style');
+    style.textContent = document.querySelector('style').textContent;
+    pipWindow.document.head.appendChild(style);
+
+    // 3. PiP内のコンテンツ構造を作成（一番上の画像を赤枠で最強調、吹き出し付き）
+    pipWindow.document.body.className = 'pip-body';
+    pipWindow.document.body.innerHTML = `
+        <!-- 適当な文字の表示エリア -->
+        <div class="info-text">${sampleText}</div>
         
-        <!-- 【最上段】猫アシスタントとおしゃべり吹き出し -->
-        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; height: 40px;">
-            <div id="catBubble" style="background: #fff; padding: 5px 10px; font-size: 11px; font-weight: bold; color: #0369a1; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">下のボタンでダウンロードしてにゃ🐾</div>
-            <div style="width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">🐱</div>
+        <!-- ドラッグなどを案内する吹き出し -->
+        <div class="balloon">💡 画像をドラッグしてデスクトップに保存するか、下のボタンでダウンロードできます！</div>
+        
+        <!-- ダウンロード一覧・最上部の強調画像エリア -->
+        <div class="highlight-box">
+            <strong style="color: #d63031; font-size: 12px;">🔥 新着ダウンロード画像</strong>
+            <img src="${sampleImageUrl}" alt="Downloaded Image">
+            <button id="pipDlBtn" class="dl-btn">画像を保存</button>
         </div>
+    `;
 
-        <!-- 【中央】プレビュー＆ダウンロードボタン -->
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="width: 180px; height: 180px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
-                <img id="previewImg" src="" style="width: 100%; height: 100%; object-fit: cover;" alt="プレビュー">
-            </div>
-            <!-- 🌟ポチッと押すダウンロードボタン -->
-            <button id="downloadBtn" style="margin-top: 12px; padding: 6px 20px; font-size: 12px; font-weight: bold; background: #0284c7; color: white; border: none; border-radius: 15px; cursor: pointer;">DOWNLOAD (保存) 🐾</button>
-        </div>
-
-        <!-- 【下段】新機能！ダウンロードされた画像の一覧（履歴）枠 -->
-        <div>
-            <p style="font-size: 10px; color: #555; font-weight: bold; text-align: left; margin: 0 0 4px 4px;">DOWNLOAD HISTORY 🐾</p>
-            <div id="storageList" style="display: flex; gap: 8px; overflow-x: auto; padding: 6px; background: rgba(255,255,255,0.6); border-radius: 10px; height: 48px; align-items: center; border: 1px solid rgba(255,255,255,0.4);">
-                <div id="noHistoryText" style="font-size: 10px; color: #888; width: 100%; text-align: center;">No History</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const openPipBtn = document.getElementById('openPipBtn');
-        const pipContent = document.getElementById('pipContent');
-        const hiddenCanvas = document.getElementById('hiddenCanvas');
-        const ctx = hiddenCanvas.getContext('2d');
-
-        // テスト用の簡単なカラー画像を生成する関数
-        function generateImage() {
-            ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 60%)`; // 毎回違う色になる
-            ctx.fillRect(0, 0, 200, 200);
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 24px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText("Cat 🐾", 100, 110);
-            return hiddenCanvas.toDataURL('image/png');
-        }
-
-        openPipBtn.addEventListener('click', async () => {
-            if (!('documentPictureInPicture' in window)) {
-                alert('最新のChromeかEdgeを使用してください。'); return;
-            }
-
-            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 360, height: 520 });
-            pipWindow.document.body.append(pipContent);
-
-            const previewImg = pipWindow.document.getElementById('previewImg');
-            const downloadBtn = pipWindow.document.getElementById('downloadBtn');
-            const catBubble = pipWindow.document.getElementById('catBubble');
-            const storageList = pipWindow.document.getElementById('storageList');
-            const noHistoryText = pipWindow.document.getElementById('noHistoryText');
-
-            let currentDataUrl = generateImage();
-            previewImg.src = currentDataUrl;
-
-            // 🌟「DOWNLOAD」ボタンを押した瞬間の超強調・吹き出し変化処理
-            downloadBtn.addEventListener('click', () => {
-                if (noHistoryText) noHistoryText.style.display = 'none';
-
-                // 1. 過去のサムネイルのネオン強調を一旦リセット
-                const allThumbs = storageList.getElementsByTagName('img');
-                for(let t of allThumbs) { t.style.border = 'none'; t.style.boxShadow = 'none'; }
-
-                // 2. 新しい履歴用サムネイルを生成
-                const thumb = pipWindow.document.createElement('img');
-                thumb.src = currentDataUrl;
-                thumb.style.height = '36px'; thumb.style.width = '36px'; thumb.style.borderRadius = '6px';
-                thumb.setAttribute('draggable', 'true');
-
-                // 💖【ここが一番上のやつ：超強調！】
-                // バズるビキビキのネオンピンクの太い枠線と、光る影エフェクトを追加
-                thumb.style.border = '2px solid #ff007f';
-                thumb.style.boxShadow = '0 0 10px #ff007f';
-                thumb.className = 'new-saved-thumb'; // ピョコンと跳ねるアニメーション
-
-                // 💬 一番上の猫の吹き出しがピンク色に染まりながらチェンジ！
-                catBubble.innerText = "これをゲームにドラッグにゃ！🐾";
-                catBubble.style.color = "#ff007f";
-
-                // 🚀 ゲームやデスクトップへ100%落とせるスタンプを埋め込む
-                thumb.addEventListener('dragstart', (e) => {
-                    const timeStamp = new Date().getTime();
-                    e.dataTransfer.setData("DownloadURL", `image/png:cat_item_${timeStamp}.png:${thumb.src}`);
-                });
-
-                // 実際の画像ダウンロード（ブラウザの通常保存）も同時に裏で実行
-                const link = document.createElement('a');
-                link.href = currentDataUrl; link.download = `cat_item_${new Date().getTime()}.png`;
-                link.click();
-
-                // 履歴リストの一番左端（一番上・先頭）に自動追加
-                storageList.insertBefore(thumb, storageList.firstChild);
-                storageList.scrollLeft = 0;
-
-                // 次のテスト用に新しい色をセットしておく
-                currentDataUrl = generateImage();
-                previewImg.src = currentDataUrl;
-            });
-
-            pipWindow.addEventListener('unload', () => { document.body.append(pipContent); });
-        });
-    </script>
+    // 4. PiP内の「画像を保存」ボタンのダウンロード処理
+    pipWindow.document.getElementById('pipDlBtn').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = sampleImageUrl;
+        a.download = 'downloaded-image.jpg';
+        pipWindow.document.body.appendChild(a);
+        a.click();
+        a.remove();
+    });
+});
+</script>
 </body>
 </html>
