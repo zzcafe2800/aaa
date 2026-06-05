@@ -2,37 +2,36 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>親画面リアルタイム処理 連携テスト</title>
+    <title>デスクトップ自動ファイル化（DownloadURL）連携テスト</title>
 </head>
-<body style="background: #eef5fc; padding: 30px; font-family: sans-serif; text-align: center;">
+<body style="background: #fdf6ec; padding: 30px; font-family: sans-serif; text-align: center;">
 
-    <h2>🐾 本サイト（親画面：すべての画像処理・ファイル化を担当）</h2>
-    <p>この画面は裏側で「黒衣」として働き、小窓のデータを100%正しいファイルに変換します。</p>
+    <h2>🐾 本サイト（親画面：バックグラウンド処理）</h2>
+    <p>青いボタンを押してドロップくん（小窓）を起動してください。</p>
 
-    <!-- 1. 小窓（ドロップくん）を起動するボタン -->
-    <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+    <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #e6a23c; color: white; border: none; border-radius: 8px; cursor: pointer;">
         ドロップくん（小窓）を起動する🐾
     </button>
 
-    <!-- 親画面側にある非表示の画像処理用キャンバス（ここが正しい住所を持っています） -->
+    <!-- 親画面側にある非表示の画像処理用キャンバス -->
     <canvas id="hiddenCanvas" width="200" height="200" style="display: none;"></canvas>
 
     <!-- 小窓の中に引っ越しさせる中身（HTML） -->
     <div id="pipContent" style="padding: 15px; font-family: sans-serif; text-align: center; background: #fff; height: 100%;">
-        <p style="font-size: 14px; color: #555; font-weight: bold;">【小窓プレビュー】</p>
+        <p style="font-size: 14px; color: #555; font-weight: bold;">【デスクトップに落としてね】</p>
         
-        <!-- 2. 正方形のプレビュー画像欄（ここに親画面で作った本物のファイルが映る） -->
-        <div style="width: 200px; height: 200px; border: 3px dashed #007aff; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        <!-- 正方形のプレビュー画像欄 -->
+        <div style="width: 200px; height: 200px; border: 3px dashed #e6a23c; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             <img id="previewImg" src="" draggable="true" style="width: 100%; height: 100%; object-fit: cover; cursor: grab;" alt="プレビュー">
         </div>
 
-        <!-- 3. 位置調整の代わりに動かすスライダー（動作のシミュレーション） -->
+        <!-- 動作シミュレーション用のスライダー -->
         <div style="margin-top: 20px;">
-            <label style="font-size: 12px; color: #666;">枠を動かす（動作がある限り親画面へ送信）:</label><br>
-            <input type="range" id="moveSlider" min="0" max="255" value="120" style="width: 80%;">
+            <label style="font-size: 12px; color: #666;">枠を動かす（リアルタイム処理）:</label><br>
+            <input type="range" id="moveSlider" min="0" max="255" value="180" style="width: 80%;">
         </div>
 
-        <p id="pipStatus" style="font-size: 12px; color: green; margin-top: 15px; font-weight: bold;">枠を動かしてみてね！</p>
+        <p id="pipStatus" style="font-size: 13px; color: #e6a23c; margin-top: 15px; font-weight: bold;">まずは枠（スライダー）を動かしてね！</p>
     </div>
 
     <script>
@@ -41,91 +40,65 @@
         const hiddenCanvas = document.getElementById('hiddenCanvas');
         const ctx = hiddenCanvas.getContext('2d');
 
-        // 親画面側で画像処理（正方形のBlobファイル化）を行う関数
-        // 🌟これが「blob:null」を防ぐ最重要コアシステムです！
-        async function processImageInParent(sliderValue) {
-            // テスト用に、スライダーの値に合わせて背景色が変わる正方形の画像を作る
-            ctx.fillStyle = `rgb(${sliderValue}, 122, 255)`; // 動かすたびに色が変わる
+        // スライダーの値に合わせて親画面でCanvas画像（DataURL）を作る関数
+        function processImageInParent(sliderValue) {
+            // オレンジ〜黄色ベースの正方形
+            ctx.fillStyle = `rgb(230, ${sliderValue}, 60)`; 
             ctx.fillRect(0, 0, 200, 200);
             
-            // 切り取り枠を表現する内側の白い四角を描画
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(40, 40, 120, 120);
             
-            ctx.fillStyle = "#000000";
+            ctx.fillStyle = "#e6a23c";
             ctx.font = "bold 16px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("READY!", 100, 105);
+            ctx.fillText("DESKTOP", 100, 95);
+            ctx.fillText("DROP! 🐾", 100, 125);
 
-            // 1. 親画面の安全な住所（Origin）でBlobを作成
-            const blob = await new Promise(resolve => hiddenCanvas.toBlob(resolve, 'image/png'));
-            
-            // 2. 正しいURL（blob:http://localhost...）を発行
-            const validBlobUrl = URL.createObjectURL(blob);
-            
-            return { validBlobUrl, blob };
+            // 🌟DownloadURL機能には、固定された文字列（Base64）のURLが必要です
+            return hiddenCanvas.toDataURL('image/png');
         }
 
-        // 小窓を起動する処理
         openPipBtn.addEventListener('click', async () => {
             if (!('documentPictureInPicture' in window)) {
-                alert('お使いのブラウザはDocument PiPに対応していません。Chrome等を使用してください。');
+                alert('お使いのブラウザは対応していません。ChromeかEdgeを使用してください。');
                 return;
             }
 
-            // 小窓（PiP）を縦長サイズで開く
             const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 350, height: 450 });
             pipWindow.document.body.append(pipContent);
 
-            // 小窓の中の要素を定義
             const previewImg = pipWindow.document.getElementById('previewImg');
             const moveSlider = pipWindow.document.getElementById('moveSlider');
             const pipStatus = pipWindow.document.getElementById('pipStatus');
 
-            // 現在保持している最新のBlobデータを記憶する変数
-            let currentBlob = null;
+            let currentDataUrl = "";
 
-            // 🔄 【リアルタイム処理】スライダーが動くたびに親画面で処理を実行
-            async function updatePreview() {
-                // 親画面の処理を呼び出し、正しいスタンプのURLをもらう
-                const { validBlobUrl, blob } = await processImageInParent(moveSlider.value);
-                
-                currentBlob = blob; // 最新のファイルを記憶
-                
-                // 小窓のプレビューに「ゲームに落とせる本物のファイルURL」をセット！
-                previewImg.src = validBlobUrl;
-                pipStatus.innerText = "⏳ 準備完了！ゲームへ直接ドラッグしてね🐾";
+            function updatePreview() {
+                currentDataUrl = processImageInParent(moveSlider.value);
+                previewImg.src = currentDataUrl;
+                pipStatus.innerText = "👉 画像を掴んで、デスクトップへ落としてね！";
             }
 
-            // 初期表示
-            await updatePreview();
-
-            // 枠の操作（スライダー動作）がある限り、プレビュー表示前に親画面で処理
+            updatePreview();
             moveSlider.addEventListener('input', updatePreview);
 
-            // 🚀 【ドラッグ開始】掴んだ画像をゲームへ引き渡す処理
+            // 🚀 【最重要：DownloadURLの設定】
             previewImg.addEventListener('dragstart', (e) => {
-                if (!currentBlob) return;
+                if (!currentDataUrl) return;
 
-                // メモリの中に本物の「ファイルオブジェクト」を作成
-                const file = new File([currentBlob], "game_item.png", { type: "image/png" });
+                // 保存する時のファイル名を決める（例: desktop_item.png）
+                const fileName = "desktop_item.png";
 
-                // 一覧からドラッグした時と100%全く同じデータ構造としてドロップデータに詰め込む
-                e.dataTransfer.items.add(file);
-
-                // Windowsのデスクトップ自動書き出し用のDownloadURLも同時に仕込む
-                e.dataTransfer.setData("DownloadURL", `image/png:game_item.png:${previewImg.src}`);
+                // Windows（OS）に対して「ドロップした場所にこの画像ファイルを作れ！」と命令を埋め込むスタンプ
+                // 形式： e.dataTransfer.setData("DownloadURL", "MIMEタイプ:ファイル名:画像データ")
+                e.dataTransfer.setData("DownloadURL", `image/png:${fileName}:${currentDataUrl}`);
                 
-                pipStatus.innerText = "⚡ ゲーム画面へ運んでいます...";
+                pipStatus.innerText = "⚡ デスクトップにファイルを作成中...";
             });
 
             previewImg.addEventListener('dragend', () => {
-                pipStatus.innerText = "ドラッグ完了！反映されましたか？🐾";
-            });
-
-            // 小窓が閉じられたら親画面にHTMLを戻す
-            pipWindow.addEventListener('unload', () => {
-                document.body.append(pipContent);
+                pipStatus.innerText = "生成完了！デスクトップの画像情報をゲームへスライドしてね🐾";
             });
         });
     </script>
