@@ -2,56 +2,52 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>2つのフォルダ機能 比較テスト画面</title>
+    <title>【解決策①】自作画像ストレージ単体テスト</title>
 </head>
 <body style="background: #eef5fc; padding: 30px; font-family: sans-serif; text-align: center;">
 
-    <h2>🐾 本サイト（親画面：バックグラウンド処理）</h2>
-    <p>下のボタンを押して、両方の機能を詰め込んだ小窓を起動してください。</p>
+    <h2>🐾 本サイト（親画面：すべての画像処理・保存を担当）</h2>
+    <p>下のボタンを押して、あなた専用の画像倉庫が付いた小窓を起動してください。</p>
 
+    <!-- 小窓（ドロップくん）を起動するボタン -->
     <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer;">
-        フォルダ実験用小窓を起動する🐾
+        ドロップくん（小窓）を起動する🐾
     </button>
 
     <!-- 親画面側にある非表示の画像処理用キャンバス -->
     <canvas id="hiddenCanvas" width="200" height="200" style="display: none;"></canvas>
 
-    <!-- 💡ここから下すべて小窓の中に引っ越しする中身 -->
-    <div id="pipContent" style="padding: 10px; font-family: sans-serif; text-align: center; background: #fff; height: 100%; box-sizing: border-box;">
+    <!-- 💡ここから下すべて小窓の中に引っ越しする中身（HTML） -->
+    <div id="pipContent" style="padding: 15px; font-family: sans-serif; text-align: center; background: #fff; height: 100%; box-sizing: border-box;">
         
-        <!-- 【上段】プレビューエリア（共通） -->
-        <div style="width: 180px; height: 180px; border: 3px dashed #007aff; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        <p style="font-size: 14px; color: #333; font-weight: bold; margin-top: 0;">【画像プレビュー】</p>
+        
+        <!-- 中央のメインプレビュー画像欄 -->
+        <div style="width: 200px; height: 200px; border: 3px dashed #007aff; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             <img id="previewImg" src="" draggable="true" style="width: 100%; height: 100%; object-fit: cover; cursor: grab;" alt="プレビュー">
         </div>
-        <button id="commitBtn" style="margin-top: 8px; padding: 5px 15px; font-size: 12px; background: #67c23a; color: white; border: none; border-radius: 4px; cursor: pointer;">画像を確定（ポチッ）🐾</button>
+        
+        <!-- 枠を調整した後にポチッとする確定ボタン -->
+        <button id="commitBtn" style="margin-top: 10px; padding: 6px 20px; font-size: 13px; font-weight: bold; background: #67c23a; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            この枠で画像を確定する（ポチッ）🐾
+        </button>
 
-        <p id="pipStatus" style="font-size: 11px; color: #666; margin: 8px 0;">スライダーを動かして「確定」を押してね</p>
-        <input type="range" id="moveSlider" min="0" max="255" value="150" style="width: 80%; margin-bottom: 15px;">
+        <p id="pipStatus" style="font-size: 12px; color: #ff9500; margin: 10px 0; font-weight: bold;">まずは枠（スライダー）を動かしてね！</p>
+        <input type="range" id="moveSlider" min="0" max="255" value="150" style="width: 80%; margin-bottom: 20px;">
 
-        <!-- 選択肢切り替え用のミニタブ -->
-        <div style="display: flex; border-bottom: 2px solid #ccc; margin-bottom: 10px;">
-            <button id="tab1Btn" style="flex: 1; padding: 6px; font-size: 11px; font-weight: bold; background: #007aff; color: white; border: none; cursor: pointer;">①自作ストレージ</button>
-            <button id="tab2Btn" style="flex: 1; padding: 6px; font-size: 11px; font-weight: bold; background: #eee; color: #333; border: none; cursor: pointer;">②本物フォルダ同期</button>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
+
+        <!-- 📁 自作画像ストレージ（お気に入り倉庫）のUI -->
+        <p style="font-size: 13px; color: #555; font-weight: bold; text-align: left; margin: 0 0 5px 5px;">🐾 あなた専用の画像倉庫（エクスプローラー代わり）</p>
+        
+        <!-- 画像をストックするためのドロップ受付エリア -->
+        <div id="storageDropZone" style="border: 2px dashed #999; background: #f9f9f9; padding: 12px; font-size: 11px; color: #666; border-radius: 5px; margin-bottom: 10px;">
+            ここにパソコンのフォルダから画像をドロップしてストック（登録）
         </div>
-
-        <!-- 📁 【選択肢①：自作の画像ストレージエリア】 -->
-        <div id="panel1" style="display: block;">
-            <div id="storageDropZone" style="border: 2px dashed #999; background: #f9f9f9; padding: 10px; font-size: 11px; color: #666; border-radius: 5px; margin-bottom: 8px;">
-                ここに画像ファイルをドロップしてストック（登録）
-            </div>
-            <div id="storageList" style="display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; padding: 5px; background: #eee; height: 50px; border-radius: 5px; align-items: center;">
-                <!-- ここに登録した画像がたまります -->
-            </div>
-        </div>
-
-        <!-- 📂 【選択肢②：本物のフォルダ同期エリア】 -->
-        <div id="panel2" style="display: none;">
-            <button id="syncFolderBtn" style="padding: 6px 12px; font-size: 11px; background: #e6a23c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                PCの本物フォルダを選択して同期する🐾
-            </button>
-            <div id="folderFileList" style="text-align: left; max-height: 70px; overflow-y: auto; background: #f4f4f5; font-size: 11px; padding: 5px; border-radius: 5px; margin-top: 8px; border: 1px solid #ddd;">
-                フォルダ未選択です
-            </div>
+        
+        <!-- 登録された画像アイコン（サムネイル）が並ぶ枠 -->
+        <div id="storageList" style="display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding: 8px; background: #eee; height: 50px; border-radius: 5px; align-items: center;">
+            <!-- ここにストックした画像が追加されていきます -->
         </div>
 
     </div>
@@ -62,123 +58,119 @@
         const hiddenCanvas = document.getElementById('hiddenCanvas');
         const ctx = hiddenCanvas.getContext('2d');
 
-        // 親画面側でのダミー画像合成
-        function processImageInParent(sliderValue, baseImgSrc = null) {
-            ctx.fillStyle = `rgb(0, ${sliderValue}, 255)`; 
-            ctx.fillRect(0, 0, 200, 200);
-            ctx.fillStyle = "#ffffff";
+        // 親画面側で画像処理を行う関数
+        function processImageInParent(sliderValue, customBaseImage = null) {
+            if (customBaseImage) {
+                // 倉庫から選ばれた画像がある場合はそれを描画
+                ctx.drawImage(customBaseImage, 0, 0, 200, 200);
+            } else {
+                // ない場合はテスト用の色付きの四角を描画
+                ctx.fillStyle = `rgb(0, ${sliderValue}, 255)`; 
+                ctx.fillRect(0, 0, 200, 200);
+            }
+            // 切り取り枠のシミュレーション
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
             ctx.fillRect(40, 40, 120, 120);
-            ctx.fillStyle = "#007aff";
-            ctx.font = "bold 16px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText("FOLDER", 100, 95);
-            ctx.fillText("TEST! 🐾", 100, 125);
+            
             return hiddenCanvas.toDataURL('image/png');
         }
 
         openPipBtn.addEventListener('click', async () => {
-            if (!('documentPictureInPicture' in window) || !('showDirectoryPicker' in window)) {
-                alert('お使いのブラウザは対応していません。最新のChromeかEdgeで、かつlocalhost環境で実行してください。');
+            if (!('documentPictureInPicture' in window)) {
+                alert('対応していません。最新のChromeかEdgeで、かつlocalhost環境で実行してください。');
                 return;
             }
 
-            // 小窓を使いやすいサイズで起動
             const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 380, height: 540 });
             pipWindow.document.body.append(pipContent);
 
-            // 小窓内の要素たちを取得
             const previewImg = pipWindow.document.getElementById('previewImg');
             const commitBtn = pipWindow.document.getElementById('commitBtn');
             const moveSlider = pipWindow.document.getElementById('moveSlider');
             const pipStatus = pipWindow.document.getElementById('pipStatus');
-            const tab1Btn = pipWindow.document.getElementById('tab1Btn');
-            const tab2Btn = pipWindow.document.getElementById('tab2Btn');
-            const panel1 = pipWindow.document.getElementById('panel1');
-            const panel2 = pipWindow.document.getElementById('panel2');
             const storageDropZone = pipWindow.document.getElementById('storageDropZone');
             const storageList = pipWindow.document.getElementById('storageList');
-            const syncFolderBtn = pipWindow.document.getElementById('syncFolderBtn');
-            const folderFileList = pipWindow.document.getElementById('folderFileList');
 
             let currentDataUrl = "";
             let isConfirmed = false;
+            let activeStorageImage = null; // 現在倉庫から選ばれている画像要素
 
-            // --- 共通のプレビュー制御 ---
+            // プレビューの基本制御
             function updatePreview() {
-                previewImg.style.backgroundColor = `rgb(0, ${moveSlider.value}, 255)`;
-                pipStatus.innerText = "⚠️ 未確定です。確定ボタンを押してください。";
+                if (!activeStorageImage) {
+                    previewImg.style.backgroundColor = `rgb(0, ${moveSlider.value}, 255リー)`;
+                }
+                pipStatus.innerText = "⚠️ 未確定です。緑のボタンを押してください。";
                 isConfirmed = false;
             }
             updatePreview();
             moveSlider.addEventListener('input', updatePreview);
 
+            // 緑の確定ボタンを押したときの処理
             commitBtn.addEventListener('click', () => {
-                currentDataUrl = processImageInParent(moveSlider.value);
+                currentDataUrl = processImageInParent(moveSlider.value, activeStorageImage);
                 previewImg.src = currentDataUrl;
-                pipStatus.innerText = "⭕ 確定！デスクトップへドラッグしてね！";
+                pipStatus.innerText = "⭕ 画像確定！デスクトップへドラッグしてね🐾";
                 isConfirmed = true;
             });
 
+            // デスクトップ自動保存用のドラッグ開始処理
             previewImg.addEventListener('dragstart', (e) => {
-                if (!isConfirmed) { e.preventDefault(); alert("先に確定させてにゃ！"); return; }
+                if (!isConfirmed) { e.preventDefault(); alert("先に『緑の確定ボタン』を押してにゃ！🐾"); return; }
                 const timeStamp = new Date().getTime();
                 e.dataTransfer.setData("DownloadURL", `image/png:item_${timeStamp}.png:${currentDataUrl}`);
             });
 
-            // --- タブ切り替えシステム ---
-            tab1Btn.addEventListener('click', () => {
-                panel1.style.display = 'block'; panel2.style.display = 'none';
-                tab1Btn.style.background = '#007aff'; tab1Btn.style.color = '#fff';
-                tab2Btn.style.background = '#eee'; tab2Btn.style.color = '#333';
-            });
-            tab2Btn.addEventListener('click', () => {
-                panel1.style.display = 'none'; panel2.style.display = 'block';
-                tab1Btn.style.background = '#eee'; tab1Btn.style.color = '#333';
-                tab2Btn.style.background = '#007aff'; tab2Btn.style.color = '#fff';
-            });
-
-            // 📁 【機能①：自作画像ストレージの実装】
+            // 📁 【自作画像ストレージ（お気に入り倉庫）の処理】
             storageDropZone.addEventListener('dragover', (e) => e.preventDefault());
             storageDropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 const files = e.dataTransfer.files;
+                
                 for (let file of files) {
                     if (file.type.startsWith('image/')) {
                         const reader = new FileReader();
                         reader.onload = (event) => {
-                            // サムネイル用の小さな画像を作成して枠に追加
+                            // 倉庫に並べる小さなサムネイル（<img>）を作成
                             const thumb = pipWindow.document.createElement('img');
                             thumb.src = event.target.result;
-                            thumb.style.height = '40px'; thumb.style.borderRadius = '3px'; thumb.style.cursor = 'pointer';
-                            // クリックしたらその画像をプレビューに一瞬でセット
+                            thumb.style.height = '40px'; 
+                            thumb.style.borderRadius = '4px'; 
+                            thumb.style.cursor = 'pointer';
+                            thumb.style.border = '2px solid transparent';
+                            
+                            // サムネイルがクリックされたら、それを「編集のベース画像」に決定する
                             thumb.addEventListener('click', () => {
-                                previewImg.src = thumb.src;
-                                currentDataUrl = thumb.src;
-                                isConfirmed = true;
-                                pipStatus.innerText = "倉庫の画像をセットしたにゃ！このままドラッグ可能🐾";
+                                // 他のサムネイルの枠線を消す
+                                const allThumbs = storageList.getElementsByTagName('img');
+                                for(let t of allThumbs) t.style.border = '2px solid transparent';
+                                // クリックされたサムネイルに青い枠線をつけて目立たせる
+                                thumb.style.border = '2px solid #007aff';
+                                
+                                // 画像要素をメモリにロードして親画面のキャンバスで扱えるようにする
+                                const imgObj = new Image();
+                                imgObj.src = thumb.src;
+                                imgObj.onload = () => {
+                                    activeStorageImage = imgObj;
+                                    // プレビュー画面を上書き
+                                    currentDataUrl = processImageInParent(moveSlider.value, activeStorageImage);
+                                    previewImg.src = currentDataUrl;
+                                    isConfirmed = true;
+                                    pipStatus.innerText = "倉庫から画像を呼び出したにゃ！ドラッグ可能🐾";
+                                };
                             });
+                            
                             storageList.appendChild(thumb);
                         };
                         reader.readAsDataURL(file);
                     }
                 }
-                storageDropZone.innerText = "登録完了！下にストックされました🐾";
+                storageDropZone.innerText = "ストック完了！下の一覧から選べるにゃ🐾";
             });
 
-            // 📂 【機能②：本物のフォルダ同期の実装（File System Access API）】
-            syncFolderBtn.addEventListener('click', async () => {
-                try {
-                    // 安全制限回避のため、親画面（window.opener）のコンテキストを借りてフォルダを開く
-                    const dirHandle = await window.opener.showDirectoryPicker();
-                    folderFileList.innerHTML = ""; // リストをクリア
-                    
-                    // フォルダの中のファイルをループして画像だけを探す
-                    for await (const entry of dirHandle.values()) {
-                        if (entry.kind === 'file' && (entry.name.endsWith('.png') || entry.name.endsWith('.jpg') || entry.name.endsWith('.jpeg'))) {
-                            const itemDiv = pipWindow.document.createElement('div');
-                            itemDiv.innerText = `📄 ${entry.name}`;
-                            itemDiv.style.cursor = 'pointer';
-                            itemDiv.style.padding = '2px';
-                            itemDiv.style.borderBottom = '1px solid #eee';
-
-                            // フォルダ内のファイル名をクリックしたときの処理
+            // 小窓が閉じられたら元に戻す
+            pipWindow.addEventListener('unload', () => { document.body.append(pipContent); });
+        });
+    </script>
+</body>
+</html>
