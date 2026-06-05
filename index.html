@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>名前重複バグ対策・手動決定式テスト</title>
+    <title>ワンクリック・クリップボード自動コピーテスト</title>
 </head>
-<body style="background: #fdf6ec; padding: 30px; font-family: sans-serif; text-align: center;">
+<body style="background: #f0fdf4; padding: 30px; font-family: sans-serif; text-align: center;">
 
     <h2>🐾 本サイト（親画面：バックグラウンド処理）</h2>
     <p>ボタンを押してドロップくん（小窓）を起動してください。</p>
 
-    <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #e6a23c; color: white; border: none; border-radius: 8px; cursor: pointer;">
+    <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer;">
         ドロップくん（小窓）を起動する🐾
     </button>
 
@@ -18,27 +18,27 @@
 
     <!-- 小窓の中に引っ越しさせる中身（HTML） -->
     <div id="pipContent" style="padding: 15px; font-family: sans-serif; text-align: center; background: #fff; height: 100%;">
-        <p style="font-size: 14px; color: #555; font-weight: bold;">【名前被りなし！手動決定してデスクトップへ】</p>
+        <p style="font-size: 14px; color: #555; font-weight: bold;">【クリックでコピー ➔ ゲームでCtrl+V】</p>
         
-        <!-- 正方形のプレビュー画像欄 -->
-        <div style="width: 200px; height: 200px; border: 3px dashed #e6a23c; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-            <img id="previewImg" src="" draggable="true" style="width: 100%; height: 100%; object-fit: cover; cursor: grab;" alt="プレビュー">
+        <!-- クリックしてコピーするためのプレビュー枠（ドラッグは不要です） -->
+        <div id="clickArea" style="width: 200px; height: 200px; border: 3px dashed #28a745; margin: 0 auto; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <img id="previewImg" src="" style="width: 100%; height: 100%; object-fit: cover;" alt="プレビュー">
         </div>
 
         <!-- 動作シミュレーション用のスライダー -->
         <div style="margin-top: 15px;">
             <label style="font-size: 12px; color: #666;">枠を動かす（この時点ではまだ未確定）:</label><br>
-            <input type="range" id="moveSlider" min="0" max="255" value="180" style="width: 80%;">
+            <input type="range" id="moveSlider" min="0" max="255" value="120" style="width: 80%;">
         </div>
 
         <!-- 手動でポチッとする処理ボタン -->
         <div style="margin-top: 15px;">
-            <button id="commitBtn" style="padding: 8px 20px; font-size: 14px; font-weight: bold; background: #67c23a; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            <button id="commitBtn" style="padding: 8px 20px; font-size: 14px; font-weight: bold; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                 この枠で画像を確定する（ポチッ）🐾
             </button>
         </div>
 
-        <p id="pipStatus" style="font-size: 13px; color: #e6a23c; margin-top: 15px; font-weight: bold;">枠を決めたら、緑のボタンを押してね！</p>
+        <p id="pipStatus" style="font-size: 13px; color: #28a745; margin-top: 15px; font-weight: bold;">枠を決めたら、緑のボタンを押してね！</p>
     </div>
 
     <script>
@@ -48,19 +48,20 @@
         const ctx = hiddenCanvas.getContext('2d');
 
         function processImageInParent(sliderValue) {
-            ctx.fillStyle = `rgb(230, ${sliderValue}, 60)`; 
+            // 緑ベースのグラフィックを生成
+            ctx.fillStyle = `rgb(40, ${sliderValue}, 69)`; 
             ctx.fillRect(0, 0, 200, 200);
             
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(40, 40, 120, 120);
             
-            ctx.fillStyle = "#e6a23c";
+            ctx.fillStyle = "#28a745";
             ctx.font = "bold 16px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("MANUAL", 100, 95);
-            ctx.fillText("READY! 🐾", 100, 125);
+            ctx.fillText("CLICK", 100, 95);
+            ctx.fillText("COPY! 🐾", 100, 125);
 
-            return hiddenCanvas.toDataURL('image/png');
+            return new Promise(resolve => hiddenCanvas.toBlob(resolve, 'image/png'));
         }
 
         openPipBtn.addEventListener('click', async () => {
@@ -73,55 +74,48 @@
             pipWindow.document.body.append(pipContent);
 
             const previewImg = pipWindow.document.getElementById('previewImg');
-            const moveSlider = pipWindow.document.getElementById('moveSlider');
+            const clickArea = pipWindow.document.getElementById('clickArea');
             const commitBtn = pipWindow.document.getElementById('commitBtn');
             const pipStatus = pipWindow.document.getElementById('pipStatus');
 
-            let currentDataUrl = "";
+            let currentBlob = null;
             let isConfirmed = false;
 
             moveSlider.addEventListener('input', () => {
-                previewImg.style.backgroundColor = `rgb(230, ${moveSlider.value}, 60)`;
+                previewImg.style.backgroundColor = `rgb(40, ${moveSlider.value}, 69)`;
                 pipStatus.innerText = "⚠️ まだ未確定です。緑のボタンを押してください。";
                 pipStatus.style.color = "#e6a23c";
                 isConfirmed = false;
             });
 
-            commitBtn.addEventListener('click', () => {
-                currentDataUrl = processImageInParent(moveSlider.value);
-                previewImg.src = currentDataUrl;
-                pipStatus.innerText = "⭕ 画像が確定しました！デスクトップへドラッグしてね！";
+            // 🌟緑のボタンをポチッとしたときに画像を親画面で生成
+            commitBtn.addEventListener('click', async () => {
+                currentBlob = await processImageInParent(moveSlider.value);
+                previewImg.src = URL.createObjectURL(currentBlob);
+                pipStatus.innerText = "⭕ 確定！画像を1回左クリックしてね！";
                 pipStatus.style.color = "green";
                 isConfirmed = true;
             });
 
-            // 🚀 【名前被りなし！DownloadURLの設定】
-            previewImg.addEventListener('dragstart', (e) => {
-                if (!isConfirmed || !currentDataUrl) {
-                    e.preventDefault();
+            // 🚀 【クリック時にクリップボードへ画像そのものをコピー】
+            clickArea.addEventListener('click', async () => {
+                if (!isConfirmed || !currentBlob) {
                     alert("先に『この枠で画像を確定する』ボタンを押してにゃ！🐾");
                     return;
                 }
 
-                // 🌟 現在の時間を取得して、絶対に被らないIDを作る（例: 20240321_153045_123）
-                const d = new Date();
-                const timeStamp = d.getFullYear() + 
-                                  String(d.getMonth() + 1).padStart(2, '0') + 
-                                  String(d.getDate()).padStart(2, '0') + "_" + 
-                                  String(d.getHours()).padStart(2, '0') + 
-                                  String(d.getMinutes()).padStart(2, '0') + 
-                                  String(d.getSeconds()).padStart(2, '0') + "_" +
-                                  String(d.getMilliseconds()).padStart(2, '0');
-
-                // ファイル名を「item_日時_ミリ秒.png」にして絶対に重複させない
-                const fileName = `item_${timeStamp}.png`;
-
-                e.dataTransfer.setData("DownloadURL", `image/png:${fileName}:${currentDataUrl}`);
-                pipStatus.innerText = `⚡ 『${fileName}』をデスクトップに作成中...`;
-            });
-
-            previewImg.addEventListener('dragend', () => {
-                pipStatus.innerText = "生成完了！デスクトップからゲームへスライドしてね🐾";
+                try {
+                    // 文字列ではなく、画像ファイルオブジェクト(Blob)をそのままクリップボードに格納
+                    await pipWindow.navigator.clipboard.write([
+                        new ClipboardItem({ [currentBlob.type]: currentBlob })
+                    ]);
+                    
+                    pipStatus.innerText = "⭕ コピー成功！ゲームで Ctrl + V を押してにゃ🐾";
+                    pipStatus.style.color = "#007aff";
+                } catch (err) {
+                    pipStatus.innerText = "❌ コピー失敗: " + err.message;
+                    pipStatus.style.color = "red";
+                }
             });
         });
     </script>
