@@ -2,23 +2,15 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>サイト透明化＆PiPコントロールデモ</title>
+    <title>メインブラウザ極小化＆PiPデモ</title>
     <style>
-        /* メインサイト全体のスタイル */
-        body { 
-            font-family: sans-serif; padding: 20px; text-align: center; 
-            background-color: #ffffff; color: #333333; transition: opacity 0.3s;
-        }
-        /* 【重要】このクラスがついた時だけサイトを完全に透明（非表示）にする */
-        body.transparent-mode {
-            opacity: 0 !important;
-            pointer-events: none; /* 透明化中はクリックも無効化 */
-        }
-        
+        body { font-family: sans-serif; padding: 20px; text-align: center; background: #fff; color: #333; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-
+        
         /* --- PiPウィンドウ内の専用スタイル --- */
-        .pip-body { font-family: sans-serif; padding: 12px; background: #fff; margin: 0; text-align: center; }
+        .pip-body { font-family: sans-serif; padding: 10px; background: #fff; margin: 0; text-align: center; overflow: hidden; }
+        
+        /* ダウンロード履歴の真下を狙い撃ちする上向き吹き出し */
         .arrow-up-balloon {
             position: relative; background: #ffeaa7; border: 2px solid #fdcb6e;
             padding: 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: #d63031; margin-top: 5px;
@@ -27,10 +19,10 @@
             content: ''; position: absolute; top: -10px; left: 85%;
             border-width: 0 10px 10px 10px; border-style: solid; border-color: transparent transparent #fdcb6e transparent;
         }
+        
         .preview-box { margin-top: 10px; border: 1px dashed #ccc; padding: 5px; border-radius: 4px; }
         .preview-box img { width: 100%; max-height: 70px; object-fit: contain; }
         
-        /* PiP内のコントロールボタン */
         .action-btn { background: #007bff; color: white; border: none; width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
         .reset-btn { background: #ea2027; color: white; border: none; width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; }
     </style>
@@ -38,13 +30,13 @@
 <body>
 
     <div id="mainContent">
-        <h1>サイト透明化＆PiPデモ</h1>
-        <p>下のボタンを押すと、この画面の文字や背景が一時的に消えて透明になります。</p>
+        <h1>メインブラウザ極小化デモ</h1>
+        <p>「PiPウィンドウを開く」を押すと、このメインブラウザが画面の左上に自動で小さく縮み、PiPが起動します。</p>
         <button id="openPip">PiPウィンドウを開く</button>
     </div>
 
 <script>
-// 文字入りPNG画像をCanvasで生成
+// 文字入りPNG画像をCanvasで自動生成
 function createTextImage() {
     const canvas = document.createElement('canvas');
     canvas.width = 300; canvas.height = 150;
@@ -57,26 +49,38 @@ function createTextImage() {
 }
 const generatedPng = createTextImage();
 
+// 元のブラウザサイズと位置を記憶しておく変数
+let originalWidth = window.innerWidth;
+let originalHeight = window.innerHeight;
+let originalX = window.screenX;
+let originalY = window.screenY;
+
 document.getElementById('openPip').addEventListener('click', async () => {
-    // 1. PiPウィンドウをコンパクトに起動
+    // 1. 現在のブラウザのサイズと位置を保存
+    originalWidth = window.outerWidth;
+    originalHeight = window.outerHeight;
+    originalX = window.screenX;
+    originalY = window.screenY;
+
+    // 2. PiPウィンドウをコンパクトに起動
     const pipWin = await window.documentPictureInPicture.requestWindow({ width: 280, height: 260 });
 
-    // 2. スタイルをPiPに適用
+    // 3. 【今回の本命】メインブラウザを左上の隅に移動させ、限界（極小）まで縮める
+    window.moveTo(0, 0);
+    window.resizeTo(100, 100); 
+
+    // 4. スタイルをPiPに適用
     const style = document.createElement('style');
     style.textContent = document.querySelector('style').textContent;
     pipWin.document.head.appendChild(style);
     pipWin.document.body.className = 'pip-body';
 
-    // 3. PiPを開いた瞬間に、メインサイトを「透明モード」にする
-    document.body.classList.add('transparent-mode');
-
-    // 4. PiP内の初期画面
+    // 5. PiP内の初期画面
     function renderInitialView() {
         pipWin.document.body.innerHTML = `
             <div class="preview-box"><img src="${generatedPng}"></div>
             <button id="dlBtn" class="action-btn">📥 ダウンロードして履歴を表示</button>
-            <!-- メインサイトをPiP側からいつでも復元できるボタン -->
-            <button id="restoreBtn" class="reset-btn">👁 サイトの透明化を解除</button>
+            <button id="restoreBtn" class="reset-btn">🔳 メイン画面を元のサイズに戻す</button>
         `;
 
         // ダウンロード処理
@@ -91,31 +95,31 @@ document.getElementById('openPip').addEventListener('click', async () => {
             renderGuideView();
         });
 
-        // サイトを元に戻す処理
-        pipWin.document.getElementById('restoreBtn').addEventListener('click', () => {
-            document.body.classList.remove('transparent-mode');
-        });
+        // サイトを元の大きさに戻す処理
+        pipWin.document.getElementById('restoreBtn').addEventListener('click', restoreMainWindow);
     }
 
-    // 5. ダウンロード後の案内画面（ここからも元に戻せます）
+    // 6. ダウンロード後の案内画面
     function renderGuideView() {
         pipWin.document.body.innerHTML = `
             <div class="arrow-up-balloon">
                 👆 画面右上の履歴に保存されました！<br>
                 そこからドラッグ可能です！
             </div>
-            <button id="restoreBtn2" class="reset-btn">👁 サイトの透明化を解除</button>
+            <button id="restoreBtn2" class="reset-btn">🔳 メイン画面を元のサイズに戻す</button>
         `;
 
-        pipWin.document.getElementById('restoreBtn2').addEventListener('click', () => {
-            document.body.classList.remove('transparent-mode');
-        });
+        pipWin.document.getElementById('restoreBtn2').addEventListener('click', restoreMainWindow);
     }
 
-    // PiPが「×」ボタンなどで手動で閉じられた時も、自動でサイトを元に戻す安全処理
-    pipWin.addEventListener('pagehide', () => {
-        document.body.classList.remove('transparent-mode');
-    });
+    // メイン画面の大きさと位置を復元する共通関数
+    function restoreMainWindow() {
+        window.resizeTo(originalWidth, originalHeight);
+        window.moveTo(originalX, originalY);
+    }
+
+    // PiPが手動で閉じられた時も、自動でメイン画面を復元する
+    pipWin.addEventListener('pagehide', restoreMainWindow);
 
     renderInitialView();
 });
