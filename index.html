@@ -6,19 +6,19 @@
 </head>
 <body style="background: #eef5fc; padding: 30px; font-family: sans-serif; text-align: center;">
 
-    <h2>🐾 本サイト（親画面：すべての画像処理を担当）</h2>
-    <p>この画面は裏側で「黒衣（システム）」として働き、小窓のデータを100%正しいファイルに変換します。</p>
+    <h2>🐾 本サイト（親画面：すべての画像処理・ファイル化を担当）</h2>
+    <p>この画面は裏側で「黒衣」として働き、小窓のデータを100%正しいファイルに変換します。</p>
 
     <!-- 1. 小窓（ドロップくん）を起動するボタン -->
     <button id="openPipBtn" style="padding: 15px 30px; font-size: 18px; font-weight: bold; background: #007aff; color: white; border: none; border-radius: 8px; cursor: pointer;">
         ドロップくん（小窓）を起動する🐾
     </button>
 
-    <!-- 親画面側にある非表示の画像処理用キャンバス -->
+    <!-- 親画面側にある非表示の画像処理用キャンバス（ここが正しい住所を持っています） -->
     <canvas id="hiddenCanvas" width="200" height="200" style="display: none;"></canvas>
 
     <!-- 小窓の中に引っ越しさせる中身（HTML） -->
-    <div id="pipContent" style="padding: 15px; font-family: sans-serif; text-align: center; background: rgba(255,255,255,0.8); height: 100%;">
+    <div id="pipContent" style="padding: 15px; font-family: sans-serif; text-align: center; background: #fff; height: 100%;">
         <p style="font-size: 14px; color: #555; font-weight: bold;">【小窓プレビュー】</p>
         
         <!-- 2. 正方形のプレビュー画像欄（ここに親画面で作った本物のファイルが映る） -->
@@ -28,7 +28,7 @@
 
         <!-- 3. 位置調整の代わりに動かすスライダー（動作のシミュレーション） -->
         <div style="margin-top: 20px;">
-            <label style="font-size: 12px; color: #666;">枠を動かす（動作テスト）:</label><br>
+            <label style="font-size: 12px; color: #666;">枠を動かす（動作がある限り親画面へ送信）:</label><br>
             <input type="range" id="moveSlider" min="0" max="255" value="120" style="width: 80%;">
         </div>
 
@@ -53,7 +53,7 @@
             ctx.fillRect(40, 40, 120, 120);
             
             ctx.fillStyle = "#000000";
-            ctx.font = "bold 14px sans-serif";
+            ctx.font = "bold 16px sans-serif";
             ctx.textAlign = "center";
             ctx.fillText("READY!", 100, 105);
 
