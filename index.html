@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ゲームへのドラッグ＆ドロップ 最終確認テスト</title>
+</head>
+<body style="background: #f0f0f0; padding: 20px; font-family: sans-serif;">
+
+    <h3>🐾 ゲームへの直接ドロップ 最終テスト画面</h3>
+    <p>下の「白い四角」をマウスで掴んで、そのままゲーム画面へ落としてみてください。</p>
+
+    <!-- テスト用の画像（今回は1×1ピクセルの透明な画像を拡大して、中に文字を入れたCanvasデータ） -->
+    <canvas id="testCanvas" width="200" height="200" style="border: 2px dashed #007aff; background: white; cursor: grab;"></canvas>
+
+    <p id="status" style="color: #666; font-weight: bold; margin-top: 15px;">画像をドラッグしてください...</p>
+
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const status = document.getElementById('status');
+        const ctx = canvas.getContext('2d');
+
+        // テスト用の見た目をCanvasに描画（白い箱に文字）
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = "#007aff";
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("これを掴んで", 100, 90);
+        ctx.fillText("ゲームへポイッ！", 100, 120);
+
+        // 要素をドラッグ可能にする
+        canvas.setAttribute('draggable', 'true');
+
+        // ★本サイト（親画面）で一瞬でファイル化する処理のシミュレーション
+        canvas.addEventListener('dragstart', async (e) => {
+            status.innerText = "⚡ メモリー上でファイルを生成中...";
+            
+            try {
+                // 1. Canvasの見た目をその場でBlob（本物のデータ）に変換
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+                // 2. パソコンが100%納得する「本物のファイルオブジェクト」をメモリ内に作成
+                const file = new File([blob], "test_item.png", { type: "image/png" });
+                
+                // 3. ゲームが「フォルダから来た」と誤認する公式スタンプ（DataTransfer）に詰め込む
+                e.dataTransfer.items.add(file);
+                
+                // 4. Windowsのエクスプローラー（デスクトップ）自動保存用の裏コマンドも合体
+                const dataUrl = canvas.toDataURL("image/png");
+                e.dataTransfer.setData("DownloadURL", `image/png:test_item.png:${dataUrl}`);
+                
+                status.innerText = "⭕ 成功！そのままゲーム内で離してください！🐾";
+                status.style.color = "green";
+            } catch (err) {
+                status.innerText = "❌ エラーが発生しました: " + err.message;
+                status.style.color = "red";
+            }
+        });
+
+        canvas.addEventListener('dragend', () => {
+            status.innerText = "ドラッグが終了しました。反映されましたか？";
+            status.style.color = "#666";
+        });
+    </script>
+
+</body>
+</html>
