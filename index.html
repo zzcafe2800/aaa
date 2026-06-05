@@ -2,50 +2,49 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>リアルタイム親画面処理＆超強調テスト</title>
+    <title>ダウンロード＆超強調テスト</title>
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background: #e0f2fe; }
+        body { margin: 0; padding: 0; font-family: sans-serif; background: #e0f2fe; text-align: center; padding-top: 50px; }
+        /* 🌟最新の画像がピョコンと飛び出す可愛いアニメーション */
         @keyframes popIn {
             0% { transform: scale(0); opacity: 0; }
-            70% { transform: scale(1.15); }
+            70% { transform: scale(1.2); }
             100% { transform: scale(1); opacity: 1; }
         }
-        .new-saved-thumb { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .new-saved-thumb { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
-<body style="padding: 30px; text-align: center;">
+<body>
 
-    <h2>🐾 本サイト（親画面：すべての画像処理・Blob化を担当）</h2>
-    <p>青いボタンを押してドロップくん（小窓）を起動してください。</p>
-    <button id="openPipBtn" style="padding: 12px 25px; font-size: 16px; background: #0284c7; color: white; border: none; border-radius: 20px; cursor: pointer;">小窓を起動する🐾</button>
+    <h2>🐾 Cat Palette Mini</h2>
+    <button id="openPipBtn" style="padding: 12px 24px; font-size: 16px; background: #0284c7; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold;">小窓（PiP）を起動🐾</button>
 
+    <!-- 非表示の画像生成用キャンバス -->
     <canvas id="hiddenCanvas" width="200" height="200" style="display: none;"></canvas>
 
-    <!-- 💡ここから下すべてすりガラス風小窓（PiP）の中身 -->
-    <div id="pipContent" style="padding: 12px; height: 100%; box-sizing: border-box; background: rgba(224, 242, 254, 0.8); backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: space-between;">
+    <!-- 💡ここから下すべて小窓（PiP）の中身 -->
+    <div id="pipContent" style="padding: 12px; height: 100%; box-sizing: border-box; background: #e0f2fe; display: flex; flex-direction: column; justify-content: space-between; font-family: sans-serif;">
         
-        <!-- 【上段】猫アシスタントとおしゃべり吹き出し -->
+        <!-- 【最上段】猫アシスタントとおしゃべり吹き出し -->
         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; height: 40px;">
-            <div id="catBubble" style="background: #fff; padding: 4px 10px; font-size: 11px; font-weight: bold; color: #0369a1; border-radius: 12px;">ここに画像をドロップしてにゃ🐾</div>
+            <div id="catBubble" style="background: #fff; padding: 5px 10px; font-size: 11px; font-weight: bold; color: #0369a1; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">下のボタンでダウンロードしてにゃ🐾</div>
             <div style="width: 32px; height: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">🐱</div>
         </div>
 
-        <!-- 【中央】プレビュー＆極細ホワイトラインの編集エリア -->
+        <!-- 【中央】プレビュー＆ダウンロードボタン -->
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="width: 190px; height: 190px; background: #fff; border-radius: 12px; overflow: hidden; position: relative;">
-                <!-- 🌟親画面が生成した正常なBlob URLがリアルタイムでここに入ります -->
+            <div style="width: 180px; height: 180px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
                 <img id="previewImg" src="" style="width: 100%; height: 100%; object-fit: cover;" alt="プレビュー">
-                <div style="position: absolute; top:25px; left:25px; width: 140px; height: 140px; border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 0 0 9999px rgba(0,0,0,0.25); pointer-events: none; border-radius: 4px;"></div>
             </div>
-            <!-- 枠を動かすスライダー（動作がある限りリアルタイムに親画面へデータ送信） -->
-            <input type="range" id="moveSlider" min="0" max="255" value="150" style="width: 70%; margin-top: 12px;">
+            <!-- 🌟ポチッと押すダウンロードボタン -->
+            <button id="downloadBtn" style="margin-top: 12px; padding: 6px 20px; font-size: 12px; font-weight: bold; background: #0284c7; color: white; border: none; border-radius: 15px; cursor: pointer;">DOWNLOAD (保存) 🐾</button>
         </div>
 
-        <!-- 【下段】新機能！ダウンロード履歴超強調リスト枠 -->
+        <!-- 【下段】新機能！ダウンロードされた画像の一覧（履歴）枠 -->
         <div>
-            <p style="font-size: 10px; color: #555; font-weight: bold; text-align: left; margin: 0 0 4px 4px;">HISTORY (DRAG TO GAME) 🐾</p>
-            <div id="storageList" style="display: flex; gap: 8px; overflow-x: auto; padding: 6px; background: rgba(255,255,255,0.5); border-radius: 10px; height: 50px; align-items: center; border: 1px solid rgba(255,255,255,0.4);">
-                <div id="noHistoryText" style="font-size: 10px; color: #888; width: 100%; text-align: center;">No History 🐾</div>
+            <p style="font-size: 10px; color: #555; font-weight: bold; text-align: left; margin: 0 0 4px 4px;">DOWNLOAD HISTORY 🐾</p>
+            <div id="storageList" style="display: flex; gap: 8px; overflow-x: auto; padding: 6px; background: rgba(255,255,255,0.6); border-radius: 10px; height: 48px; align-items: center; border: 1px solid rgba(255,255,255,0.4);">
+                <div id="noHistoryText" style="font-size: 10px; color: #888; width: 100%; text-align: center;">No History</div>
             </div>
         </div>
     </div>
@@ -56,81 +55,77 @@
         const hiddenCanvas = document.getElementById('hiddenCanvas');
         const ctx = hiddenCanvas.getContext('2d');
 
-        // 🌟【blob:null対策】親画面（正しい住所）側でリアルタイムに画像処理・Blob化するコア関数
-        async function processImageInParent(sliderValue) {
-            ctx.fillStyle = `rgb(0, ${sliderValue}, 255)`; 
+        // テスト用の簡単なカラー画像を生成する関数
+        function generateImage() {
+            ctx.fillStyle = `hsl(${Math.random() * 360}, 70%, 60%)`; // 毎回違う色になる
             ctx.fillRect(0, 0, 200, 200);
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(40, 40, 120, 120);
-            ctx.fillStyle = "#0284c7";
-            ctx.font = "bold 18px sans-serif";
+            ctx.font = "bold 24px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("READY!", 100, 110);
-
-            const blob = await new Promise(resolve => hiddenCanvas.toBlob(resolve, 'image/png'));
-            const validBlobUrl = URL.createObjectURL(blob); // 正常なオリジン（blob:http://localhost...）を発行
-            return { validBlobUrl, blob };
+            ctx.fillText("Cat 🐾", 100, 110);
+            return hiddenCanvas.toDataURL('image/png');
         }
 
         openPipBtn.addEventListener('click', async () => {
             if (!('documentPictureInPicture' in window)) {
-                alert('対応していません。最新のChromeかEdgeを使用してください。');
-                return;
+                alert('最新のChromeかEdgeを使用してください。'); return;
             }
 
-            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 380, height: 560 });
+            const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 360, height: 520 });
             pipWindow.document.body.append(pipContent);
 
             const previewImg = pipWindow.document.getElementById('previewImg');
-            const moveSlider = pipWindow.document.getElementById('moveSlider');
+            const downloadBtn = pipWindow.document.getElementById('downloadBtn');
             const catBubble = pipWindow.document.getElementById('catBubble');
             const storageList = pipWindow.document.getElementById('storageList');
             const noHistoryText = pipWindow.document.getElementById('noHistoryText');
 
-            let currentBlob = null;
+            let currentDataUrl = generateImage();
+            previewImg.src = currentDataUrl;
 
-            // 🔄 枠の動作がある限り、プレビューに表示する前に本サイト（親画面）で画像処理
-            async function updatePreview() {
-                const { validBlobUrl, blob } = await processImageInParent(moveSlider.value);
-                currentBlob = blob;
-                previewImg.src = validBlobUrl; // ゲームに落とせる状態にしてからプレビューに表示
-
-                // 🌟【自動履歴追加＆ネオン超強調】
+            // 🌟「DOWNLOAD」ボタンを押した瞬間の超強調・吹き出し変化処理
+            downloadBtn.addEventListener('click', () => {
                 if (noHistoryText) noHistoryText.style.display = 'none';
 
-                // 過去のネオン強調をリセット
+                // 1. 過去のサムネイルのネオン強調を一旦リセット
                 const allThumbs = storageList.getElementsByTagName('img');
                 for(let t of allThumbs) { t.style.border = 'none'; t.style.boxShadow = 'none'; }
 
-                // 新しいサムネイルの生成
+                // 2. 新しい履歴用サムネイルを生成
                 const thumb = pipWindow.document.createElement('img');
-                thumb.src = validBlobUrl;
-                thumb.style.height = '38px'; thumb.style.width = '38px'; thumb.style.borderRadius = '6px'; thumb.style.objectFit = 'cover';
+                thumb.src = currentDataUrl;
+                thumb.style.height = '36px'; thumb.style.width = '36px'; thumb.style.borderRadius = '6px';
                 thumb.setAttribute('draggable', 'true');
 
-                // 💖 ネオンピンクの太い枠線と光るエフェクトで最新画像を激しく強調！
+                // 💖【ここが一番上のやつ：超強調！】
+                // バズるビキビキのネオンピンクの太い枠線と、光る影エフェクトを追加
                 thumb.style.border = '2px solid #ff007f';
                 thumb.style.boxShadow = '0 0 10px #ff007f';
-                thumb.className = 'new-saved-thumb';
+                thumb.className = 'new-saved-thumb'; // ピョコンと跳ねるアニメーション
 
-                // 猫アシスタントのセリフを切り替えて強力にナビゲーション
-                catBubble.innerText = "Drag to Game! 🐾 (ゲームに持ってってにゃ！)";
+                // 💬 一番上の猫の吹き出しがピンク色に染まりながらチェンジ！
+                catBubble.innerText = "これをゲームにドラッグにゃ！🐾";
                 catBubble.style.color = "#ff007f";
 
-                // 🚀 【確率100%のドロップデータスタンプの埋め込み】
+                // 🚀 ゲームやデスクトップへ100%落とせるスタンプを埋め込む
                 thumb.addEventListener('dragstart', (e) => {
                     const timeStamp = new Date().getTime();
-                    const file = new File([currentBlob], `game_item_${timeStamp}.png`, { type: "image/png" });
-                    e.dataTransfer.items.add(file); // 本物のファイルオブジェクトを格納
-                    e.dataTransfer.setData("DownloadURL", `image/png:${file.name}:${thumb.src}`);
+                    e.dataTransfer.setData("DownloadURL", `image/png:cat_item_${timeStamp}.png:${thumb.src}`);
                 });
 
+                // 実際の画像ダウンロード（ブラウザの通常保存）も同時に裏で実行
+                const link = document.createElement('a');
+                link.href = currentDataUrl; link.download = `cat_item_${new Date().getTime()}.png`;
+                link.click();
+
+                // 履歴リストの一番左端（一番上・先頭）に自動追加
                 storageList.insertBefore(thumb, storageList.firstChild);
                 storageList.scrollLeft = 0;
-            }
 
-            await updatePreview();
-            moveSlider.addEventListener('input', updatePreview); // 動作がある限り連動
+                // 次のテスト用に新しい色をセットしておく
+                currentDataUrl = generateImage();
+                previewImg.src = currentDataUrl;
+            });
 
             pipWindow.addEventListener('unload', () => { document.body.append(pipContent); });
         });
